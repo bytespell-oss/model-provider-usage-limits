@@ -2,6 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@bytespell/opencode-usage-limits-router.svg)](https://www.npmjs.com/package/@bytespell/opencode-usage-limits-router)
 
+> **Note:** This is a community project. It is not built by the OpenCode team and is not affiliated with OpenCode.
+
 OpenCode integration for AI provider usage limits. Includes CLI and plugin.
 
 Reads tokens from OpenCode's `auth.json` and uses [@bytespell/model-provider-usage-limits](https://www.npmjs.com/package/@bytespell/model-provider-usage-limits) for fetching usage data and routing logic.
