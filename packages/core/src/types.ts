@@ -73,6 +73,12 @@ export interface UsageOptions {
   cacheTTL?: number;
   /** Fetch timeout in milliseconds (default: 5000) */
   timeout?: number;
+  /** 
+   * Auto-detect tokens from known sources (e.g., OpenCode's auth.json).
+   * When true, tokens will be read automatically and merged with any 
+   * explicitly provided tokens (explicit tokens take priority).
+   */
+  autoDetectAuthTokens?: boolean;
 }
 
 /**

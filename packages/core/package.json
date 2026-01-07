@@ -1,10 +1,13 @@
 {
   "name": "@bytespell/model-provider-usage-limits",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Fetch AI provider usage limits, pace tracking, and smart routing.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "usage-limits": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -1,71 +1,88 @@
 # Model Provider Usage Limits
 
-Monorepo for managing AI provider usage limits and smart routing.
+Track usage limits for your AI subscriptions. Zero config - uses provider auth from env/auth tokens stored for your user.
 
-## Packages
+`npx @bytespell/model-provider-usage-limits`
 
-| Package | Description | npm |
-|---------|-------------|-----|
-| [@bytespell/model-provider-usage-limits](./packages/core) | Headless library: fetch usage, pace tracking, router logic | [![npm](https://img.shields.io/npm/v/@bytespell/model-provider-usage-limits)](https://www.npmjs.com/package/@bytespell/model-provider-usage-limits) |
-| [@bytespell/opencode-usage-limits-router](./packages/opencode-usage-limits-router) | OpenCode integration: CLI + plugin | [![npm](https://img.shields.io/npm/v/@bytespell/opencode-usage-limits-router)](https://www.npmjs.com/package/@bytespell/opencode-usage-limits-router) |
+```yaml
+anthropic:
+  5h: 45% used
+  7d: 30% used
 
-## Quick Start
-
-### For OpenCode Users (CLI)
-
-```bash
-npx @bytespell/opencode-usage-limits-router
+github-copilot:
+  monthly: 60% used
 ```
 
-Reads tokens from OpenCode's auth file automatically.
+Route your AI requests to squeeze all the value out of your subscriptions
 
-### As a Library
+`npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5`
+
+```yaml
+github-copilot has most headroom (-15% pace)
+  - github-copilot: score -15 (pace: -15%)
+  - anthropic: score 8 (pace: +8%)
+```
+
+Supported providers:
+- Claude Pro / Max
+- GitHub Copilot
+- ChatGPT Plus
+- Codex
+
+Never leave tokens on the table again.
+
+---
+
+## CLI
+
+```bash
+npx @bytespell/model-provider-usage-limits [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <id>` | Query specific provider (`anthropic`, `github-copilot`, `openai`) |
+| `--route <model>` | Pick best provider for a model |
+| `--json` | Output JSON |
+| `--no-cache` | Bypass cache |
+
+## Library
 
 ```bash
 npm install @bytespell/model-provider-usage-limits
 ```
 
+### getUsage()
+
+```typescript
+import { getUsage } from '@bytespell/model-provider-usage-limits';
+
+// Auto-detect tokens
+const results = await getUsage({ autoDetectAuthTokens: true });
+
+// Or explicit tokens
+const results = await getUsage({
+  tokens: { anthropic: 'sk-...', 'github-copilot': 'ghu_...' }
+});
+```
+
+| Option | Description |
+|--------|-------------|
+| `autoDetectAuthTokens` | Read tokens from known sources |
+| `tokens` | Explicit token map (overrides auto-detected) |
+| `bypassCache` | Skip cache |
+
+### pickBestProvider()
+
 ```typescript
 import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
 
-const results = await getUsage({
-  tokens: {
-    anthropic: 'your-token',
-    'github-copilot': 'your-token',
-  }
-});
+const results = await getUsage({ autoDetectAuthTokens: true });
+const best = pickBestProvider({ providerID: 'anthropic', modelID: 'claude-sonnet-4-5' }, results);
 
-const best = pickBestProvider('claude-sonnet-4-5', results);
-```
-
-### As an OpenCode Plugin
-
-> **Note:** This project is not built by the OpenCode team and is not affiliated with OpenCode in any way.
-
-Add to `.opencode/package.json`:
-
-```json
-{
-  "type": "module",
-  "dependencies": {
-    "@opencode-ai/plugin": "^1.1.4",
-    "@bytespell/opencode-usage-limits-router": "^0.0.1"
-  }
-}
-```
-
-Create `.opencode/plugin/usage-limits.ts`:
-
-```typescript
-export { UsageLimitsPlugin } from '@bytespell/opencode-usage-limits-router';
-```
-
-## Development
-
-```bash
-npm install
-npm run build
-node packages/opencode-usage-limits-router/dist/cli.js
+// best.providerID = 'github-copilot'
+// best.modelID = 'claude-sonnet-4.5'  
+// best.reason = 'github-copilot has most headroom (-15% pace)'
 ```
 
 ## License

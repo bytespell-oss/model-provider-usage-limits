@@ -37,7 +37,7 @@ export {
 
 // Export auth utilities
 export {
-  getProviderTokens,
+  detectAuthTokens,
   readOpenCodeAuth,
   getOpenCodeAuthPath,
   getAnthropicToken,
