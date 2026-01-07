@@ -4,7 +4,6 @@
 
 import type { UsageSnapshot, UsageOptions, UsageResult } from '../types.js';
 import { ProviderUsageError } from '../types.js';
-import { getCopilotToken } from '../utils/auth.js';
 import {
   readCentralizedCache,
   isCacheFresh,
@@ -95,11 +94,14 @@ function normalizeCopilotUsage(data: CopilotUsageResponse): UsageSnapshot {
 
 /**
  * Get Copilot usage with caching
+ * 
+ * @param token - GitHub Copilot token (null if not authenticated)
+ * @param options - Cache and fetch options
  */
 export async function getCopilotUsage(
+  token: string | null,
   options?: UsageOptions,
 ): Promise<UsageResult> {
-  const token = getCopilotToken();
   if (!token) {
     return {
       provider: PROVIDER_ID,

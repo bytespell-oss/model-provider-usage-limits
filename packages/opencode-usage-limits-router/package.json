@@ -1,10 +1,13 @@
 {
-  "name": "@bytespell/model-provider-usage-limits",
+  "name": "@bytespell/opencode-usage-limits-router",
   "version": "0.0.1",
-  "description": "Fetch AI provider usage limits, pace tracking, and smart routing.",
+  "description": "OpenCode plugin to auto-route to best AI provider based on usage limits. Includes CLI.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "opencode-usage-limits": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,25 +26,36 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
-    "ai",
-    "llm",
-    "anthropic",
-    "copilot",
-    "openai",
+    "opencode",
+    "plugin",
+    "router",
     "usage",
     "limits",
-    "router"
+    "anthropic",
+    "copilot",
+    "openai"
   ],
   "author": "ByteSpell <ashley@bytespell.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/bytespell-oss/model-provider-usage-limits.git",
-    "directory": "packages/core"
+    "directory": "packages/opencode-usage-limits-router"
   },
   "homepage": "https://github.com/bytespell-oss/model-provider-usage-limits#readme",
   "bugs": {
     "url": "https://github.com/bytespell-oss/model-provider-usage-limits/issues"
+  },
+  "dependencies": {
+    "@bytespell/model-provider-usage-limits": "^0.0.1"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@opencode-ai/plugin": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^20.0.0"

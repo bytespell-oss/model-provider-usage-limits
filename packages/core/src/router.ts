@@ -64,12 +64,12 @@ export const ROUTABLE_MODELS: RoutableModel[] = [
  * - Unavailable providers get Infinity score
  * 
  * @param modelName - Canonical model name (e.g., "claude-sonnet-4-5")
- * @param usageData - Current usage data from getAllUsage()
+ * @param usageData - Current usage data from getUsage()
  * @returns Router result with selected provider and reasoning
  */
 export function pickBestProvider(
   modelName: string,
-  usageData: Record<ProviderID, UsageResult>,
+  usageData: Partial<Record<ProviderID, UsageResult>>,
 ): RouterResult {
   const model = ROUTABLE_MODELS.find(m => m.name === modelName);
   if (!model) {

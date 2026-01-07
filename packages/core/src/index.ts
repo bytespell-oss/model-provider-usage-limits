@@ -7,7 +7,7 @@
  */
 
 // Types
-export type { ProviderID, UsageSnapshot, UsageOptions, UsageResult } from './types.js';
+export type { ProviderID, UsageSnapshot, UsageOptions, UsageResult, ProviderTokens } from './types.js';
 export { ProviderUsageError } from './types.js';
 
 // Router types and functions
@@ -17,7 +17,7 @@ export { pickBestProvider, listRoutableModels, ROUTABLE_MODELS } from './router.
 // Utilities
 export { calculatePaceDelta } from './utils/pace.js';
 
-import type { ProviderID, UsageResult, UsageOptions } from './types.js';
+import type { ProviderID, UsageResult, UsageOptions, ProviderTokens } from './types.js';
 import { getAnthropicUsage } from './providers/anthropic.js';
 import { getCopilotUsage } from './providers/copilot.js';
 import { getCodexUsage } from './providers/codex.js';
@@ -30,46 +30,82 @@ export function listSupportedProviders(): ProviderID[] {
 }
 
 /**
- * Get usage data for a specific provider.
- * 
- * @param providerID - Provider to query
- * @param options - Cache and fetch options
- * @returns UsageResult with data, optional error, and cache metadata
+ * Options for fetching usage data.
  */
-export async function getUsage(
-  providerID: ProviderID,
-  options?: UsageOptions,
-): Promise<UsageResult> {
-  switch (providerID) {
-    case 'anthropic':
-      return getAnthropicUsage(options);
-    case 'github-copilot':
-      return getCopilotUsage(options);
-    case 'openai':
-      return getCodexUsage(options);
-    default:
-      throw new Error(`Unknown provider: ${providerID satisfies never}`);
-  }
+export interface GetUsageOptions extends UsageOptions {
+  /** Provider tokens - map of provider ID to auth token */
+  tokens: ProviderTokens;
 }
 
 /**
- * Get usage data for all supported providers.
+ * Get usage data for providers.
  * 
- * @param options - Cache and fetch options
- * @returns Map of provider IDs to usage results with data, errors, and cache metadata
+ * Pass a tokens object mapping provider IDs to their auth tokens.
+ * Only providers with tokens will be queried.
+ * 
+ * @example
+ * ```typescript
+ * // Single provider
+ * const result = await getUsage({ tokens: { anthropic: 'sk-...' } });
+ * 
+ * // Multiple providers
+ * const results = await getUsage({ 
+ *   tokens: { 
+ *     anthropic: 'sk-...',
+ *     'github-copilot': 'gh-...' 
+ *   }
+ * });
+ * ```
+ * 
+ * @param options - Tokens and fetch options
+ * @returns Map of provider IDs to usage results
  */
-export async function getAllUsage(
-  options?: UsageOptions,
-): Promise<Record<ProviderID, UsageResult>> {
-  const providers = listSupportedProviders();
-  const results = await Promise.all(
-    providers.map((p) => getUsage(p, options)),
+export async function getUsage(
+  options: GetUsageOptions,
+): Promise<Partial<Record<ProviderID, UsageResult>>> {
+  const { tokens, ...fetchOptions } = options;
+  const results: Partial<Record<ProviderID, UsageResult>> = {};
+
+  const providerFetchers: Record<ProviderID, (token: string | null, opts?: UsageOptions) => Promise<UsageResult>> = {
+    'anthropic': getAnthropicUsage,
+    'github-copilot': getCopilotUsage,
+    'openai': getCodexUsage,
+  };
+
+  // Build list of providers to fetch (only those with tokens provided)
+  const providersToFetch = (Object.keys(tokens) as ProviderID[]).filter(
+    (p) => tokens[p] !== undefined
   );
 
-  const output: Record<string, UsageResult> = {};
-  for (let i = 0; i < providers.length; i++) {
-    output[providers[i]] = results[i];
+  // Fetch all providers in parallel
+  const fetchPromises = providersToFetch.map(async (providerID) => {
+    const token = tokens[providerID] ?? null;
+    const fetcher = providerFetchers[providerID];
+    if (fetcher) {
+      const result = await fetcher(token, fetchOptions);
+      return { providerID, result };
+    }
+    return null;
+  });
+
+  const fetchResults = await Promise.all(fetchPromises);
+  
+  for (const item of fetchResults) {
+    if (item) {
+      results[item.providerID] = item.result;
+    }
   }
 
-  return output as Record<ProviderID, UsageResult>;
+  return results;
+}
+
+/**
+ * Get usage data for all providers with tokens.
+ * 
+ * @deprecated Use getUsage() instead - it handles single and multiple providers
+ */
+export async function getAllUsage(
+  options: GetUsageOptions,
+): Promise<Partial<Record<ProviderID, UsageResult>>> {
+  return getUsage(options);
 }

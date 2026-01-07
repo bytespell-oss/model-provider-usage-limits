@@ -1,144 +1,128 @@
-# model-provider-usage-limits
+# @bytespell/model-provider-usage-limits
 
-Fetch AI provider usage quotas and limits from Anthropic, GitHub Copilot, and OpenAI. Includes pace tracking and smart routing logic.
+[![npm version](https://img.shields.io/npm/v/@bytespell/model-provider-usage-limits.svg)](https://www.npmjs.com/package/@bytespell/model-provider-usage-limits)
+
+Headless library for fetching AI provider usage limits from Anthropic, GitHub Copilot, and OpenAI. Includes pace tracking and smart routing logic.
+
+For OpenCode integration with automatic token reading, see [`@bytespell/opencode-usage-limits-router`](https://www.npmjs.com/package/@bytespell/opencode-usage-limits-router).
+
+## Installation
 
 ```bash
-$ npx model-provider-usage-limits
-anthropic:
-  5h: 12% remaining (used 88%) +45%
-    resets at 2026-01-02T18:00:00Z
-  7d: 59% remaining (used 41%)
-
-github-copilot:
-  monthly: 98% remaining (used 2%) -87%
-  plan: individual
-  credits: 293
-
-openai:
-  5h: 92% remaining (used 8%)
-    resets at 2026-01-02T20:07:08Z
-  7d: 87% remaining (used 13%) -29%
-  plan: plus
+npm install @bytespell/model-provider-usage-limits
 ```
 
-## Why This Exists
-
-Using your built-in credits from existing AI subscriptions (ChatGPT Plus, GitHub Copilot, Anthropic) is convenient, but **it's hard to know how to load balance between them**. Each provider has different rate limits, usage windows, and quotas. This library gives you clear visibility into your current usage so you can make informed decisions about which tokens to use from where and when.
-
-### Pace Tracking
-
-The library shows pace indicators to help you optimize usage:
-- **+X%** = You're ahead of pace (using too fast, slow down!)
-- **-X%** = You're behind pace (using too slow, speed up!)
-
-For example, if you're 79% through a 7-day window but only used 41%, you'll see `-29%` telling you to speed up and use more from that provider.
-
-### Smart Routing
-
-The library includes headless routing logic to automatically pick the best provider for a model based on current usage limits:
+## Usage
 
 ```typescript
-import { getAllUsage, pickBestProvider } from 'model-provider-usage-limits';
+import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
 
-const usage = await getAllUsage();
-const result = pickBestProvider('claude-sonnet-4-5', usage);
-// { providerID: 'github-copilot', modelID: 'claude-sonnet-4.5', reason: '...' }
+// Fetch usage for one or more providers
+const results = await getUsage({
+  tokens: {
+    anthropic: 'your-anthropic-token',
+    'github-copilot': 'your-copilot-token',
+    openai: 'your-openai-token',
+  }
+});
+
+// results = {
+//   anthropic: { provider: 'anthropic', data: { primary: { usedPercent: 88, paceDelta: 45, ... } } },
+//   'github-copilot': { provider: 'github-copilot', data: { ... } },
+//   openai: { provider: 'openai', data: { ... } }
+// }
+
+// Smart routing: pick best provider for a model
+const best = pickBestProvider('claude-sonnet-4-5', results);
+// { providerID: 'github-copilot', modelID: 'claude-sonnet-4.5', reason: 'github-copilot has most headroom (-29% behind pace)' }
 ```
 
-## Quick Start
+## Pace Tracking
 
-```bash
-npm install model-provider-usage-limits
-```
+The library calculates `paceDelta` for each usage window:
+- **Positive (+X%)** = Using faster than pace, will hit limits early (slow down!)
+- **Negative (-X%)** = Using slower than pace, quota will go unused (speed up!)
 
-**CLI usage:**
-```bash
-# All providers
-model-provider-usage-limits
-
-# Specific provider
-model-provider-usage-limits --provider anthropic
-model-provider-usage-limits --provider github-copilot
-
-# Fresh fetch (bypass cache)
-model-provider-usage-limits --provider openai --no-cache
-```
-
-**Library API:**
-```typescript
-import { getUsage, getAllUsage } from 'model-provider-usage-limits';
-
-const result = await getUsage('anthropic');
-// { provider: 'anthropic', data: { primary: { usedPercent: 88, paceDelta: 45, ... } }, cache: {...} }
-```
+For example, if you're 79% through a 7-day window but only used 41%, `paceDelta` will be `-38%` telling you to speed up.
 
 ## API Reference
 
-### Usage Fetching
+### `getUsage(options)`
 
-**`getUsage(provider, options?)`** - Fetch usage for a specific provider
-
-**`getAllUsage(options?)`** - Fetch usage for all providers in parallel
-
-**`listSupportedProviders()`** - List available provider IDs
-
-### Routing
-
-**`pickBestProvider(modelName, usageData)`** - Pick best provider for a model based on usage
-
-**`listRoutableModels()`** - List models that can be routed across providers
-
-### Options
+Fetch usage data for providers.
 
 ```typescript
-{
+interface GetUsageOptions {
+  tokens: Partial<Record<ProviderID, string>>;  // Required: provider tokens
   bypassCache?: boolean;  // Force fresh fetch (default: false)
   cacheTTL?: number;      // Cache TTL in ms (default: 60000)
   timeout?: number;       // Request timeout in ms (default: 5000)
 }
+
+const results = await getUsage({ tokens: { anthropic: '...' } });
+// Returns: Partial<Record<ProviderID, UsageResult>>
 ```
 
-### Result Structure
+### `pickBestProvider(modelName, usageData)`
+
+Pick the best provider for a model based on current usage limits.
 
 ```typescript
-{
-  provider: 'anthropic' | 'github-copilot' | 'openai';
-  data: {
-    provider: ProviderID;
-    primary: { 
-      usedPercent: number; 
-      window: string; 
-      resetsAt: string | null;
-      paceDelta: number | null;  // +X = ahead (slow down), -X = behind (speed up)
-    } | null;
-    secondary: { 
-      usedPercent: number; 
-      window: string; 
-      resetsAt: string | null;
-      paceDelta: number | null;
-    } | null;
-    metadata?: { plan?: string; credits?: { balance: number | null; unlimited: boolean } };
-  } | null;
-  error?: { message: string; code: 'AUTH_MISSING' | 'API_ERROR' | 'TIMEOUT' | 'UNKNOWN' };
+const best = pickBestProvider('claude-sonnet-4-5', results);
+// Returns: RouterResult
+```
+
+### `listSupportedProviders()`
+
+List available provider IDs: `['anthropic', 'github-copilot', 'openai']`
+
+### `listRoutableModels()`
+
+List models that can be routed across providers.
+
+## Types
+
+### ProviderID
+
+```typescript
+type ProviderID = 'anthropic' | 'github-copilot' | 'openai';
+```
+
+### UsageResult
+
+```typescript
+interface UsageResult {
+  provider: ProviderID;
+  data: UsageSnapshot | null;
+  error?: ProviderUsageError;
   cache?: { age: number; timestamp: number; updatedAt: string; stale: boolean };
 }
 ```
 
-### Router Result
+### UsageSnapshot
 
 ```typescript
-{
+interface UsageSnapshot {
+  provider: ProviderID;
+  primary: {
+    usedPercent: number;
+    window: string;  // e.g., "5h", "7d", "monthly"
+    resetsAt: string | null;
+    paceDelta: number | null;
+  } | null;
+  secondary: { ... } | null;
+  metadata?: { plan?: string; credits?: { balance: number | null; unlimited: boolean } };
+}
+```
+
+### RouterResult
+
+```typescript
+interface RouterResult {
   providerID: ProviderID;
   modelID: string;
   reason: string;
-  candidates: {
-    providerID: ProviderID;
-    modelID: string;
-    available: boolean;
-    paceDelta: number | null;
-    usedPercent: number | null;
-    score: number;
-  }[];
+  candidates: RouterCandidate[];
 }
 ```
 

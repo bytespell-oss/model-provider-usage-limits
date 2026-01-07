@@ -4,7 +4,6 @@
 
 import type { UsageSnapshot, UsageOptions, UsageResult } from '../types.js';
 import { ProviderUsageError } from '../types.js';
-import { getAnthropicToken } from '../utils/auth.js';
 import {
   readCentralizedCache,
   isCacheFresh,
@@ -90,11 +89,14 @@ function normalizeAnthropicUsage(data: AnthropicUsageResponse): UsageSnapshot {
 
 /**
  * Get Anthropic usage with caching
+ * 
+ * @param token - Anthropic access token (null if not authenticated)
+ * @param options - Cache and fetch options
  */
 export async function getAnthropicUsage(
+  token: string | null,
   options?: UsageOptions,
 ): Promise<UsageResult> {
-  const token = getAnthropicToken();
   if (!token) {
     return {
       provider: PROVIDER_ID,

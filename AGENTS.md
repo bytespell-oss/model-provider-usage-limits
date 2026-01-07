@@ -6,9 +6,9 @@ This file contains build instructions, code style guidelines, and conventions fo
 
 **model-provider-usage-limits** - Monorepo containing:
 
-1. **`model-provider-usage-limits`** (packages/core) - Headless TypeScript library for fetching AI provider usage/quota data (Anthropic, GitHub Copilot, OpenAI). Includes pace tracking and smart routing logic.
+1. **`model-provider-usage-limits`** (packages/core) - Headless TypeScript library for fetching AI provider usage/quota data (Anthropic, GitHub Copilot, OpenAI). Includes pace tracking and smart routing logic. Accepts tokens as input.
 
-2. **`opencode-usage-limits-router`** (packages/opencode-router) - OpenCode plugin that wraps the core library to provide auto-routing in the model picker.
+2. **`opencode-usage-limits-router`** (packages/opencode-usage-limits-router) - OpenCode integration: CLI and plugin. Reads tokens from OpenCode's auth.json and wraps the core library.
 
 ## Build & Development Commands
 
@@ -23,7 +23,7 @@ npm run build
 
 # Build specific package
 npm run build --workspace=packages/core
-npm run build --workspace=packages/opencode-router
+npm run build --workspace=packages/opencode-usage-limits-router
 
 # Watch mode (core only)
 npm run watch
@@ -41,20 +41,20 @@ npm run build
 npm run watch
 
 # Work on router package  
-cd packages/opencode-router
+cd packages/opencode-usage-limits-router
 npm run build
 ```
 
 ### Testing Locally
 
 ```bash
-# Test core CLI
-node packages/core/dist/cli.js --provider anthropic
-node packages/core/dist/cli.js --json --no-cache
+# Test CLI
+node packages/opencode-usage-limits-router/dist/cli.js --provider anthropic
+node packages/opencode-usage-limits-router/dist/cli.js --json --no-cache
 
 # Link packages for local testing
 npm link --workspace=packages/core
-npm link --workspace=packages/opencode-router
+npm link --workspace=packages/opencode-usage-limits-router
 
 # After making changes, rebuild to update linked packages
 npm run build
@@ -218,11 +218,12 @@ export async function getUsage(
 - **Router** (`router.ts`): Headless routing logic
 - **Public API** (`index.ts`): Export types and main functions
 
-**OpenCode Router Package** (`packages/opencode-router/src/`):
+**OpenCode Router Package** (`packages/opencode-usage-limits-router/src/`):
 
-- Thin wrapper around core
-- OpenCode plugin hooks and integration
-- No business logic (delegates to core)
+- Reads tokens from OpenCode's auth.json
+- CLI entry point
+- OpenCode plugin hooks (future)
+- Delegates all business logic to core
 
 ### Caching Strategy
 
@@ -254,7 +255,7 @@ try {
 
 ## CLI Development
 
-- CLI entry point: `packages/core/src/cli.ts` with shebang `#!/usr/bin/env node`
+- CLI entry point: `packages/opencode-usage-limits-router/src/cli.ts` with shebang `#!/usr/bin/env node`
 - Use `node:util` parseArgs for argument parsing (no external deps)
 - Support `--help`, `--provider`, `--json`, `--no-cache` flags
 - Human-readable output by default, JSON with `--json`

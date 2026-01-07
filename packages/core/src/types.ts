@@ -58,6 +58,12 @@ export interface UsageSnapshot {
 }
 
 /**
+ * Token credentials for providers.
+ * Maps provider ID to its authentication token.
+ */
+export type ProviderTokens = Partial<Record<ProviderID, string>>;
+
+/**
  * Options for usage fetch operations.
  */
 export interface UsageOptions {

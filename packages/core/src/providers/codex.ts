@@ -4,7 +4,6 @@
 
 import type { UsageSnapshot, UsageOptions, UsageResult } from '../types.js';
 import { ProviderUsageError } from '../types.js';
-import { getCodexToken } from '../utils/auth.js';
 import {
   readCentralizedCache,
   isCacheFresh,
@@ -143,11 +142,14 @@ function normalizeCodexUsage(data: CodexUsageResponse): UsageSnapshot {
 
 /**
  * Get Codex usage with caching
+ * 
+ * @param token - OpenAI/Codex access token (null if not authenticated)
+ * @param options - Cache and fetch options
  */
 export async function getCodexUsage(
+  token: string | null,
   options?: UsageOptions,
 ): Promise<UsageResult> {
-  const token = getCodexToken();
   if (!token) {
     return {
       provider: PROVIDER_ID,

@@ -6,17 +6,56 @@ Monorepo for managing AI provider usage limits and smart routing.
 
 | Package | Description | npm |
 |---------|-------------|-----|
-| [model-provider-usage-limits](./packages/core) | Fetch usage limits, pace tracking, router logic | [![npm](https://img.shields.io/npm/v/model-provider-usage-limits)](https://www.npmjs.com/package/model-provider-usage-limits) |
-| [opencode-usage-limits-router](./packages/opencode-router) | OpenCode plugin for auto-routing | [![npm](https://img.shields.io/npm/v/opencode-usage-limits-router)](https://www.npmjs.com/package/opencode-usage-limits-router) |
+| [@bytespell/model-provider-usage-limits](./packages/core) | Headless library: fetch usage, pace tracking, router logic | [![npm](https://img.shields.io/npm/v/@bytespell/model-provider-usage-limits)](https://www.npmjs.com/package/@bytespell/model-provider-usage-limits) |
+| [@bytespell/opencode-usage-limits-router](./packages/opencode-usage-limits-router) | OpenCode integration: CLI + plugin | [![npm](https://img.shields.io/npm/v/@bytespell/opencode-usage-limits-router)](https://www.npmjs.com/package/@bytespell/opencode-usage-limits-router) |
 
 ## Quick Start
 
-```bash
-# CLI
-npx model-provider-usage-limits
+### For OpenCode Users (CLI)
 
-# Library
-npm install model-provider-usage-limits
+```bash
+npx @bytespell/opencode-usage-limits-router
+```
+
+Reads tokens from OpenCode's auth file automatically.
+
+### As a Library
+
+```bash
+npm install @bytespell/model-provider-usage-limits
+```
+
+```typescript
+import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
+
+const results = await getUsage({
+  tokens: {
+    anthropic: 'your-token',
+    'github-copilot': 'your-token',
+  }
+});
+
+const best = pickBestProvider('claude-sonnet-4-5', results);
+```
+
+### As an OpenCode Plugin
+
+Add to `.opencode/package.json`:
+
+```json
+{
+  "type": "module",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.1.4",
+    "@bytespell/opencode-usage-limits-router": "^0.0.1"
+  }
+}
+```
+
+Create `.opencode/plugin/usage-limits.ts`:
+
+```typescript
+export { UsageLimitsPlugin } from '@bytespell/opencode-usage-limits-router';
 ```
 
 ## Development
@@ -24,7 +63,7 @@ npm install model-provider-usage-limits
 ```bash
 npm install
 npm run build
-node packages/core/dist/cli.js
+node packages/opencode-usage-limits-router/dist/cli.js
 ```
 
 ## License
