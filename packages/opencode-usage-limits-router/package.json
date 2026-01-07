@@ -1,6 +1,6 @@
 {
   "name": "@bytespell/opencode-usage-limits-router",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "OpenCode plugin to auto-route to best AI provider based on usage limits. Includes CLI.",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,8 +20,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "build": "bun build ./src/index.ts ./src/cli.ts ./src/plugin.ts --outdir ./dist --target bun && bun x tsc --emitDeclarationOnly",
+    "watch": "bun build ./src/index.ts --outdir ./dist --target bun --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
@@ -58,7 +58,8 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@opencode-ai/plugin": "^1.1.4",
+    "bun-types": "^1.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
