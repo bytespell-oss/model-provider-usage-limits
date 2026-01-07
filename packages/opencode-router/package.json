@@ -1,0 +1,51 @@
+{
+  "name": "opencode-usage-limits-router",
+  "version": "0.1.0",
+  "description": "OpenCode plugin to auto-route to best AI provider based on usage limits.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "router",
+    "usage",
+    "limits"
+  ],
+  "author": "ByteSpell",
+  "license": "MIT",
+  "dependencies": {
+    "model-provider-usage-limits": "*"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@opencode-ai/plugin": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
