@@ -61,6 +61,10 @@ async function fetchAnthropicUsage(
  * Normalize Anthropic API response to UsageSnapshot
  */
 function normalizeAnthropicUsage(data: AnthropicUsageResponse): UsageSnapshot {
+  // Handle case where API returns null for rate limit fields (unlimited accounts)
+  const hasFiveHour = data.five_hour !== null && data.five_hour !== undefined;
+  const hasSevenDay = data.seven_day !== null && data.seven_day !== undefined;
+  
   const fiveHourUsed = data.five_hour?.utilization ?? 0;
   const fiveHourResets = data.five_hour?.resets_at ?? null;
   const sevenDayUsed = data.seven_day?.utilization ?? 0;
@@ -68,7 +72,7 @@ function normalizeAnthropicUsage(data: AnthropicUsageResponse): UsageSnapshot {
   
   return {
     provider: PROVIDER_ID,
-    primary: data.five_hour
+    primary: hasFiveHour
       ? {
           usedPercent: fiveHourUsed,
           window: '5h',
@@ -76,7 +80,7 @@ function normalizeAnthropicUsage(data: AnthropicUsageResponse): UsageSnapshot {
           paceDelta: calculatePaceDelta(fiveHourUsed, '5h', fiveHourResets),
         }
       : null,
-    secondary: data.seven_day
+    secondary: hasSevenDay
       ? {
           usedPercent: sevenDayUsed,
           window: '7d',

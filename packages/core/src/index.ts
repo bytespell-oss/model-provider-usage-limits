@@ -11,16 +11,27 @@ export type { ProviderID, UsageSnapshot, UsageOptions, UsageResult, ProviderToke
 export { ProviderUsageError } from './types.js';
 
 // Router types and functions
-export type { RoutableModel, RouterCandidate, RouterResult } from './router.js';
-export { pickBestProvider, listRoutableModels, ROUTABLE_MODELS } from './router.js';
+export type { RoutingInput, RouterCandidate, RouterResult } from './router.js';
+export { 
+  pickBestProvider, 
+  getAlternateProviders, 
+  transformModelID, 
+  normalizeModelID,
+  isRoutableModel,
+} from './router.js';
 
 // Utilities
 export { calculatePaceDelta } from './utils/pace.js';
+
+// Test mode utilities
+export type { TestScenario } from './utils/test-mode.js';
+export { isTestModeEnabled, getTestScenario, generateTestUsage } from './utils/test-mode.js';
 
 import type { ProviderID, UsageResult, UsageOptions, ProviderTokens } from './types.js';
 import { getAnthropicUsage } from './providers/anthropic.js';
 import { getCopilotUsage } from './providers/copilot.js';
 import { getCodexUsage } from './providers/codex.js';
+import { isTestModeEnabled, getTestScenario, generateTestUsage } from './utils/test-mode.js';
 
 /**
  * List all supported provider IDs.
@@ -64,6 +75,24 @@ export async function getUsage(
   options: GetUsageOptions,
 ): Promise<Partial<Record<ProviderID, UsageResult>>> {
   const { tokens, ...fetchOptions } = options;
+  
+  // Test mode: return simulated data
+  if (isTestModeEnabled()) {
+    const scenario = getTestScenario();
+    const testData = generateTestUsage(scenario);
+    const results: Partial<Record<ProviderID, UsageResult>> = {};
+    
+    for (const [providerID, snapshot] of Object.entries(testData)) {
+      results[providerID as ProviderID] = {
+        provider: providerID as ProviderID,
+        data: snapshot,
+      };
+    }
+    
+    return results;
+  }
+  
+  // Normal mode: fetch from APIs
   const results: Partial<Record<ProviderID, UsageResult>> = {};
 
   const providerFetchers: Record<ProviderID, (token: string | null, opts?: UsageOptions) => Promise<UsageResult>> = {

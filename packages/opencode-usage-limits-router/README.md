@@ -36,9 +36,65 @@ export { UsageLimitsPlugin } from '@bytespell/opencode-usage-limits-router';
 
 ## Plugin Features
 
-The plugin shows usage information via toast notifications:
-- On `session.idle` (after each model response): Shows compact usage summary
-- Listens for `/usage` and `/route` commands
+### Auto-Routing
+
+The plugin automatically switches providers when you're over pace:
+
+- **Monitors usage after each response**: Listens for `session.idle` events (after assistant completes)
+- **Checks pace thresholds**: If current provider is ≥ +5% over pace, looks for alternatives
+- **Auto-switches providers**: Switches to provider with ≤ -5% pace (has headroom)
+- **Shows notifications**: Toast alerts when switching providers or when over pace
+
+**Example flow:**
+1. You send a message using Anthropic
+2. Assistant responds (Anthropic is +8% over pace)
+3. Plugin checks GitHub Copilot (-15% under pace)
+4. Toast: "Switched to github-copilot (-15% pace)\nanthropic was +8% over pace"
+5. Next message automatically uses GitHub Copilot
+
+### Commands
+
+- `/usage` - Show current usage for all providers
+- `/route <model>` - Get routing recommendation for a specific model
+
+### Debug Mode
+
+Enable verbose logging and usage toasts after every response:
+
+```bash
+export USAGE_LIMITS_DEBUG=1
+opencode
+```
+
+Creates `plugin-debug.log` in your project directory with detailed routing decisions.
+
+## Important Considerations
+
+### Model Persistence
+
+**The plugin writes to your project's `config.json` when switching providers.** This means:
+
+- ✅ Model changes persist across sessions in the same project
+- ✅ Each project can have different provider preferences
+- ⚠️ Changes are written to disk (not in-memory only)
+- ⚠️ Triggers instance disposal and TUI reload (usually transparent)
+
+If you manually switch providers using `/model`, the plugin will respect your choice until it detects you're over pace again.
+
+### When Auto-Switching Happens
+
+The plugin only switches when:
+1. Current provider is ≥ +5% over pace
+2. Alternative provider exists for the same model
+3. Alternative provider is ≤ -5% under pace (has headroom)
+
+Otherwise, it shows a warning toast but doesn't switch.
+
+### Supported Models
+
+Auto-routing works for models available on multiple providers:
+- `claude-sonnet-4-5`: anthropic, github-copilot
+- `claude-opus-4-5`: anthropic, github-copilot
 
 ## CLI Usage
 

@@ -17,7 +17,7 @@ export type {
   UsageOptions,
   ProviderTokens,
   GetUsageOptions,
-  RoutableModel,
+  RoutingInput,
   RouterResult,
   RouterCandidate,
 } from '@bytespell/model-provider-usage-limits';
@@ -27,8 +27,10 @@ export {
   getAllUsage,
   listSupportedProviders,
   pickBestProvider,
-  listRoutableModels,
-  ROUTABLE_MODELS,
+  getAlternateProviders,
+  transformModelID,
+  normalizeModelID,
+  isRoutableModel,
   calculatePaceDelta,
   ProviderUsageError,
 } from '@bytespell/model-provider-usage-limits';
