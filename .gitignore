@@ -5,3 +5,6 @@ dist/
 *.tsbuildinfo
 .claude/*
 config.json
+
+# Demo intermediate files (keep .sh and .gif, ignore .cast)
+*.cast
