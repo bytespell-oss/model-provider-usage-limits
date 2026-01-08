@@ -1,10 +1,20 @@
 # Model Provider Usage Limits
-Never leave tokens on the table. 
 
-**Track** usage limits for your subscriptions. 
+**Never leave tokens on the table.** Track usage across all your AI subscriptions and route requests to the provider with the most headroom.
 
-`npx @bytespell/model-provider-usage-limits`
+## Quick Start
+```bash
+# Check current usage across all providers
+npx @bytespell/model-provider-usage-limits
 
+# Find the best provider for your next request
+npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5
+```
+
+## Features
+
+### 📊 Usage Tracking
+Monitor consumption across multiple time windows:
 ```yaml
 anthropic:
   5h: 45% used
@@ -14,21 +24,20 @@ github-copilot:
   monthly: 60% used
 ```
 
-**Route** your requests to optimal subscriptions
-
-`npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5`
-
+### 🎯 Routing
+Automatically route to the subscription with most available capacity:
 ```yaml
 github-copilot has most headroom (-15% pace)
   - github-copilot: score -15 (pace: -15%)
   - anthropic: score 8 (pace: +8%)
 ```
 
-Supported providers:
-- Claude Pro / Max
-- GitHub Copilot
-- ChatGPT Plus
-- Codex
+## Supported Providers
+
+- **Anthropic** - Claude Pro / Max
+- **GitHub** - Copilot
+- **OpenAI** - ChatGPT Plus
+- **Codex**
 
 ---
 
@@ -83,6 +92,15 @@ const best = pickBestProvider({ providerID: 'anthropic', modelID: 'claude-sonnet
 // best.modelID = 'claude-sonnet-4.5'  
 // best.reason = 'github-copilot has most headroom (-15% pace)'
 ```
+
+
+## Roadmap
+
+- [ ] Add Gemini Advanced support
+- [ ] Cost tracking & savings calculator  
+- [ ] Desktop tray app for live monitoring
+
+**Want to contribute?** We're looking for help with [specific feature]. See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 
