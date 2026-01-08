@@ -7,6 +7,41 @@ import { parseArgs } from 'node:util';
 import { getUsage, listSupportedProviders, pickBestProvider } from './index.js';
 import type { ProviderID, UsageResult } from './types.js';
 
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  cyan: '\x1b[36m',
+};
+
+const useColor = process.stdout.isTTY !== false;
+
+function c(color: keyof typeof colors, text: string): string {
+  return useColor ? `${colors[color]}${text}${colors.reset}` : text;
+}
+
+/**
+ * Get color based on usage percentage (green = good/low, red = bad/high)
+ */
+function getUsageColor(percent: number): keyof typeof colors {
+  if (percent >= 80) return 'red';
+  if (percent >= 50) return 'yellow';
+  return 'green';
+}
+
+/**
+ * Get color based on pace delta (green = under pace, red = over pace)
+ */
+function getPaceColor(pace: number): keyof typeof colors {
+  if (pace > 10) return 'red';
+  if (pace > 0) return 'yellow';
+  return 'green';
+}
+
 function printHelp(): void {
   console.log(`
 usage-limits - Fetch AI provider usage limits
@@ -27,25 +62,29 @@ function formatUsageText(result: UsageResult): string {
   const { provider, data, error } = result;
   
   if (data === null && !error) {
-    return `${provider}: Not authenticated`;
+    return `${c('bold', provider)}: ${c('dim', 'Not authenticated')}`;
   }
   
   if (data === null && error) {
-    return `${provider}: Error - ${error.message}`;
+    return `${c('bold', provider)}: ${c('red', `Error - ${error.message}`)}`;
   }
   
-  const lines: string[] = [`${provider}:`];
+  const lines: string[] = [`${c('bold', provider)}:`];
 
   if (data!.primary) {
-    lines.push(`  ${data!.primary.window}: ${data!.primary.usedPercent}% used`);
+    const percent = data!.primary.usedPercent;
+    const color = getUsageColor(percent);
+    lines.push(`  ${c('dim', data!.primary.window + ':')} ${c(color, `${percent}%`)} used`);
   }
 
   if (data!.secondary) {
-    lines.push(`  ${data!.secondary.window}: ${data!.secondary.usedPercent}% used`);
+    const percent = data!.secondary.usedPercent;
+    const color = getUsageColor(percent);
+    lines.push(`  ${c('dim', data!.secondary.window + ':')} ${c(color, `${percent}%`)} used`);
   }
 
   if (data!.metadata?.plan) {
-    lines.push(`  plan: ${data!.metadata.plan}`);
+    lines.push(`  ${c('dim', 'plan:')} ${data!.metadata.plan}`);
   }
 
   return lines.join('\n');
@@ -103,12 +142,16 @@ async function main(): Promise<void> {
       if (outputJson) {
         console.log(JSON.stringify(routeResult, null, 2));
       } else {
-        console.log(routeResult.reason);
+        console.log(c('bold', routeResult.reason));
         for (const candidate of routeResult.candidates) {
-          const paceStr = candidate.paceDelta !== null 
-            ? ` (pace: ${candidate.paceDelta > 0 ? '+' : ''}${candidate.paceDelta}%)` 
+          const pace = candidate.paceDelta;
+          const paceColor = pace !== null ? getPaceColor(pace) : 'dim';
+          const paceStr = pace !== null 
+            ? ` ${c('dim', '(pace:')} ${c(paceColor, `${pace > 0 ? '+' : ''}${pace}%`)}${c('dim', ')')}` 
             : '';
-          console.log(`  - ${candidate.providerID}: score ${candidate.score}${paceStr}`);
+          const isWinner = candidate.providerID === routeResult.providerID;
+          const prefix = isWinner ? c('green', '→') : ' ';
+          console.log(`  ${prefix} ${c('cyan', candidate.providerID)}: score ${candidate.score}${paceStr}`);
         }
       }
       
