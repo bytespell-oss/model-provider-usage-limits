@@ -15,15 +15,18 @@ npm install @bytespell/model-provider-usage-limits
 ## Usage
 
 ```typescript
-import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
+import {
+  getUsage,
+  pickBestProvider,
+} from "@bytespell/model-provider-usage-limits";
 
 // Fetch usage for one or more providers
 const results = await getUsage({
   tokens: {
-    anthropic: 'your-anthropic-token',
-    'github-copilot': 'your-copilot-token',
-    openai: 'your-openai-token',
-  }
+    anthropic: "your-anthropic-token",
+    "github-copilot": "your-copilot-token",
+    openai: "your-openai-token",
+  },
 });
 
 // results = {
@@ -33,13 +36,14 @@ const results = await getUsage({
 // }
 
 // Smart routing: pick best provider for a model
-const best = pickBestProvider('claude-sonnet-4-5', results);
+const best = pickBestProvider("claude-sonnet-4-5", results);
 // { providerID: 'github-copilot', modelID: 'claude-sonnet-4.5', reason: 'github-copilot has most headroom (-29% behind pace)' }
 ```
 
 ## Pace Tracking
 
 The library calculates `paceDelta` for each usage window:
+
 - **Positive (+X%)** = Using faster than pace, will hit limits early (slow down!)
 - **Negative (-X%)** = Using slower than pace, quota will go unused (speed up!)
 
@@ -53,13 +57,13 @@ Fetch usage data for providers.
 
 ```typescript
 interface GetUsageOptions {
-  tokens: Partial<Record<ProviderID, string>>;  // Required: provider tokens
-  bypassCache?: boolean;  // Force fresh fetch (default: false)
-  cacheTTL?: number;      // Cache TTL in ms (default: 60000)
-  timeout?: number;       // Request timeout in ms (default: 5000)
+  tokens: Partial<Record<ProviderID, string>>; // Required: provider tokens
+  bypassCache?: boolean; // Force fresh fetch (default: false)
+  cacheTTL?: number; // Cache TTL in ms (default: 60000)
+  timeout?: number; // Request timeout in ms (default: 5000)
 }
 
-const results = await getUsage({ tokens: { anthropic: '...' } });
+const results = await getUsage({ tokens: { anthropic: "..." } });
 // Returns: Partial<Record<ProviderID, UsageResult>>
 ```
 
@@ -68,7 +72,7 @@ const results = await getUsage({ tokens: { anthropic: '...' } });
 Pick the best provider for a model based on current usage limits.
 
 ```typescript
-const best = pickBestProvider('claude-sonnet-4-5', results);
+const best = pickBestProvider("claude-sonnet-4-5", results);
 // Returns: RouterResult
 ```
 
@@ -85,7 +89,7 @@ List models that can be routed across providers.
 ### ProviderID
 
 ```typescript
-type ProviderID = 'anthropic' | 'github-copilot' | 'openai';
+type ProviderID = "anthropic" | "github-copilot" | "openai";
 ```
 
 ### UsageResult
@@ -106,7 +110,7 @@ interface UsageSnapshot {
   provider: ProviderID;
   primary: {
     usedPercent: number;
-    window: string;  // e.g., "5h", "7d", "monthly"
+    window: string;  // e.g., "5h", "7d", "30d"
     resetsAt: string | null;
     paceDelta: number | null;
   } | null;

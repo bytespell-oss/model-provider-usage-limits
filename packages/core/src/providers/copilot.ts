@@ -2,19 +2,19 @@
  * GitHub Copilot provider usage adapter
  */
 
-import type { UsageSnapshot, UsageOptions, UsageResult } from '../types.js';
-import { ProviderUsageError } from '../types.js';
+import type { UsageSnapshot, UsageOptions, UsageResult } from "../types.js";
+import { ProviderUsageError } from "../types.js";
 import {
   readCentralizedCache,
   isCacheFresh,
   getCacheMetadata,
   updateProviderInCache,
   DEFAULT_CACHE_TTL_MS,
-} from '../utils/cache.js';
-import { fetchWithTimeout } from '../utils/fetch.js';
-import { calculatePaceDelta } from '../utils/pace.js';
+} from "../utils/cache.js";
+import { fetchWithTimeout } from "../utils/fetch.js";
+import { calculatePaceDelta } from "../utils/pace.js";
 
-const PROVIDER_ID = 'github-copilot' as const;
+const PROVIDER_ID = "github-copilot" as const;
 
 interface CopilotQuotaSnapshot {
   entitlement: number;
@@ -41,12 +41,12 @@ async function fetchCopilotUsage(
   timeout?: number,
 ): Promise<CopilotUsageResponse> {
   const response = await fetchWithTimeout(
-    'https://api.github.com/copilot_internal/user',
+    "https://api.github.com/copilot_internal/user",
     {
       headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/json',
-        'User-Agent': 'opencode-provider-usage-limits/1.0',
+        Authorization: `token ${token}`,
+        Accept: "application/json",
+        "User-Agent": "opencode-provider-usage-limits/1.0",
       },
       timeout,
     },
@@ -57,7 +57,7 @@ async function fetchCopilotUsage(
     throw new ProviderUsageError(
       `GitHub Copilot API returned ${response.status}`,
       PROVIDER_ID,
-      'API_ERROR',
+      "API_ERROR",
     );
   }
 
@@ -76,11 +76,11 @@ function normalizeCopilotUsage(data: CopilotUsageResponse): UsageSnapshot {
     provider: PROVIDER_ID,
     primary: {
       usedPercent,
-      window: 'monthly',
+      window: "30d",
       resetsAt,
-      paceDelta: calculatePaceDelta(usedPercent, 'monthly', resetsAt),
+      paceDelta: calculatePaceDelta(usedPercent, "30d", resetsAt),
     },
-    secondary: null, // Copilot only has monthly quota
+    secondary: null, // Copilot only has 30-day quota
     metadata: {
       plan: data.copilot_plan,
       credits: {
@@ -94,7 +94,7 @@ function normalizeCopilotUsage(data: CopilotUsageResponse): UsageSnapshot {
 
 /**
  * Get Copilot usage with caching
- * 
+ *
  * @param token - GitHub Copilot token (null if not authenticated)
  * @param options - Cache and fetch options
  */
@@ -136,14 +136,15 @@ export async function getCopilotUsage(
       data: snapshot,
     };
   } catch (error) {
-    const providerError = error instanceof ProviderUsageError
-      ? error
-      : new ProviderUsageError(
-          `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-          PROVIDER_ID,
-          'UNKNOWN',
-          error,
-        );
+    const providerError =
+      error instanceof ProviderUsageError
+        ? error
+        : new ProviderUsageError(
+            `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+            PROVIDER_ID,
+            "UNKNOWN",
+            error,
+          );
 
     // Try to return stale cache as fallback
     const staleCache = readCentralizedCache()?.[PROVIDER_ID];

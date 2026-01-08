@@ -5,6 +5,7 @@
 ![Demo](./assets/demo.svg)
 
 ## Quick Start
+
 ```bash
 # Check current usage across all providers
 npx @bytespell/model-provider-usage-limits
@@ -16,18 +17,22 @@ npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5
 ## Features
 
 ### 📊 Usage Tracking
+
 Monitor consumption across multiple time windows:
+
 ```yaml
 anthropic:
   5h: 45% used
   7d: 30% used
 
 github-copilot:
-  monthly: 60% used
+  30d: 60% used
 ```
 
 ### 🎯 Routing
+
 Automatically route to the subscription with most available capacity:
+
 ```yaml
 github-copilot has most headroom (-15% pace)
   - github-copilot: score -15 (pace: -15%)
@@ -49,12 +54,12 @@ github-copilot has most headroom (-15% pace)
 npx @bytespell/model-provider-usage-limits [options]
 ```
 
-| Option | Description |
-|--------|-------------|
+| Option            | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
 | `--provider <id>` | Query specific provider (`anthropic`, `github-copilot`, `openai`) |
-| `--route <model>` | Pick best provider for a model |
-| `--json` | Output JSON |
-| `--no-cache` | Bypass cache |
+| `--route <model>` | Pick best provider for a model                                    |
+| `--json`          | Output JSON                                                       |
+| `--no-cache`      | Bypass cache                                                      |
 
 ## Library
 
@@ -65,36 +70,41 @@ npm install @bytespell/model-provider-usage-limits
 ### getUsage()
 
 ```typescript
-import { getUsage } from '@bytespell/model-provider-usage-limits';
+import { getUsage } from "@bytespell/model-provider-usage-limits";
 
 // Auto-detect tokens
 const results = await getUsage({ autoDetectAuthTokens: true });
 
 // Or explicit tokens
 const results = await getUsage({
-  tokens: { anthropic: 'sk-...', 'github-copilot': 'ghu_...' }
+  tokens: { anthropic: "sk-...", "github-copilot": "ghu_..." },
 });
 ```
 
-| Option | Description |
-|--------|-------------|
-| `autoDetectAuthTokens` | Read tokens from known sources |
-| `tokens` | Explicit token map (overrides auto-detected) |
-| `bypassCache` | Skip cache |
+| Option                 | Description                                  |
+| ---------------------- | -------------------------------------------- |
+| `autoDetectAuthTokens` | Read tokens from known sources               |
+| `tokens`               | Explicit token map (overrides auto-detected) |
+| `bypassCache`          | Skip cache                                   |
 
 ### pickBestProvider()
 
 ```typescript
-import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
+import {
+  getUsage,
+  pickBestProvider,
+} from "@bytespell/model-provider-usage-limits";
 
 const results = await getUsage({ autoDetectAuthTokens: true });
-const best = pickBestProvider({ providerID: 'anthropic', modelID: 'claude-sonnet-4-5' }, results);
+const best = pickBestProvider(
+  { providerID: "anthropic", modelID: "claude-sonnet-4-5" },
+  results,
+);
 
 // best.providerID = 'github-copilot'
-// best.modelID = 'claude-sonnet-4.5'  
+// best.modelID = 'claude-sonnet-4.5'
 // best.reason = 'github-copilot has most headroom (-15% pace)'
 ```
-
 
 ## Roadmap
 

@@ -2,7 +2,7 @@
  * OpenCode provider usage limits library - Type definitions
  */
 
-export type ProviderID = 'anthropic' | 'github-copilot' | 'openai';
+export type ProviderID = "anthropic" | "github-copilot" | "openai";
 
 /**
  * Normalized usage snapshot for a provider.
@@ -11,12 +11,12 @@ export type ProviderID = 'anthropic' | 'github-copilot' | 'openai';
 export interface UsageSnapshot {
   /** Provider identifier */
   provider: ProviderID;
-  
-  /** Primary usage window (e.g., 5-hour for Anthropic, monthly for Copilot) */
+
+  /** Primary usage window (e.g., 5-hour for Anthropic, 30-day for Copilot) */
   primary: {
     /** Percentage used (0-100) */
     usedPercent: number;
-    /** Window description (e.g., "5h", "monthly") */
+    /** Window description (e.g., "5h", "7d", "30d") */
     window: string;
     /** ISO 8601 reset timestamp */
     resetsAt: string | null;
@@ -28,7 +28,7 @@ export interface UsageSnapshot {
      */
     paceDelta: number | null;
   } | null;
-  
+
   /** Secondary usage window (e.g., 7-day for Anthropic) */
   secondary: {
     /** Percentage used (0-100) */
@@ -45,7 +45,7 @@ export interface UsageSnapshot {
      */
     paceDelta: number | null;
   } | null;
-  
+
   /** Additional provider-specific metadata */
   metadata?: {
     plan?: string;
@@ -73,9 +73,9 @@ export interface UsageOptions {
   cacheTTL?: number;
   /** Fetch timeout in milliseconds (default: 5000) */
   timeout?: number;
-  /** 
+  /**
    * Auto-detect tokens from known sources (e.g., OpenCode's auth.json).
-   * When true, tokens will be read automatically and merged with any 
+   * When true, tokens will be read automatically and merged with any
    * explicitly provided tokens (explicit tokens take priority).
    */
   autoDetectAuthTokens?: boolean;
@@ -88,13 +88,13 @@ export interface UsageOptions {
 export interface UsageResult {
   /** The provider ID */
   provider: ProviderID;
-  
+
   /** Usage snapshot data (null if not authenticated) */
   data: UsageSnapshot | null;
-  
+
   /** Error information if the fetch failed (may have fallback data) */
   error?: ProviderUsageError;
-  
+
   /** Cache metadata (always present when data is available) */
   cache?: {
     /** Age of cache in milliseconds */
@@ -115,11 +115,11 @@ export class ProviderUsageError extends Error {
   constructor(
     message: string,
     public readonly provider: ProviderID,
-    public readonly code: 'AUTH_MISSING' | 'API_ERROR' | 'TIMEOUT' | 'UNKNOWN',
+    public readonly code: "AUTH_MISSING" | "API_ERROR" | "TIMEOUT" | "UNKNOWN",
     public readonly cause?: unknown,
   ) {
     super(message);
-    this.name = 'ProviderUsageError';
+    this.name = "ProviderUsageError";
     Object.setPrototypeOf(this, ProviderUsageError.prototype);
   }
 }
