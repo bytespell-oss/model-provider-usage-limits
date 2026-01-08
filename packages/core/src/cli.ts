@@ -7,7 +7,64 @@ import { parseArgs } from 'node:util';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { getUsage, listSupportedProviders, pickBestProvider } from './index.js';
-import type { ProviderID, UsageResult } from './types.js';
+import type { ProviderID, UsageResult, UsageSnapshot } from './types.js';
+
+/**
+ * Sample data for demo mode
+ */
+function getDemoResults(): Partial<Record<ProviderID, UsageResult>> {
+  const anthropicSnapshot: UsageSnapshot = {
+    provider: 'anthropic',
+    primary: {
+      usedPercent: 45,
+      window: '5h',
+      resetsAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+      paceDelta: 8,
+    },
+    secondary: {
+      usedPercent: 30,
+      window: '7d',
+      resetsAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      paceDelta: -5,
+    },
+    metadata: { plan: 'pro' },
+  };
+
+  const copilotSnapshot: UsageSnapshot = {
+    provider: 'github-copilot',
+    primary: {
+      usedPercent: 60,
+      window: 'monthly',
+      resetsAt: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+      paceDelta: -15,
+    },
+    secondary: null,
+  };
+
+  return {
+    anthropic: {
+      provider: 'anthropic',
+      data: anthropicSnapshot,
+      cache: {
+        age: 5000,
+        timestamp: Date.now() - 5000,
+        updatedAt: new Date(Date.now() - 5000).toISOString(),
+        stale: false,
+      },
+    },
+    'github-copilot': {
+      provider: 'github-copilot',
+      data: copilotSnapshot,
+      cache: {
+        age: 5000,
+        timestamp: Date.now() - 5000,
+        updatedAt: new Date(Date.now() - 5000).toISOString(),
+        stale: false,
+      },
+    },
+
+  };
+}
 
 /**
  * Get color function based on usage percentage (green = good/low, red = bad/high)
@@ -39,6 +96,7 @@ ${pc.dim('Options:')}
   --route <model>     Pick best provider for a model
   --json              Output JSON format
   --no-cache          Bypass cache
+  --demo              Show demo with sample data (no auth required)
   --help              Show this help
 `);
 }
@@ -88,6 +146,7 @@ async function main(): Promise<void> {
       route: { type: 'string' },
       json: { type: 'boolean', default: false },
       'no-cache': { type: 'boolean', default: false },
+      demo: { type: 'boolean', default: false },
       help: { type: 'boolean', default: false },
     },
     allowPositionals: false,
@@ -100,10 +159,11 @@ async function main(): Promise<void> {
 
   const bypassCache = values['no-cache'] ?? false;
   const outputJson = values.json ?? false;
+  const demoMode = values.demo ?? false;
 
   // JSON mode - no fancy output
   if (outputJson) {
-    const results = await getUsage({ autoDetectAuthTokens: true, bypassCache });
+    const results = demoMode ? getDemoResults() : await getUsage({ autoDetectAuthTokens: true, bypassCache });
 
     if (values.route) {
       const modelID = values.route;
@@ -130,9 +190,14 @@ async function main(): Promise<void> {
   p.intro(pc.bgCyan(pc.black(' model-provider-usage-limits ')));
 
   const s = p.spinner();
-  s.start('Fetching usage limits');
+  s.start(demoMode ? 'Loading demo data' : 'Fetching usage limits');
 
-  const results = await getUsage({ autoDetectAuthTokens: true, bypassCache });
+  // Simulate network delay in demo mode
+  if (demoMode) {
+    await new Promise((r) => setTimeout(r, 800));
+  }
+
+  const results = demoMode ? getDemoResults() : await getUsage({ autoDetectAuthTokens: true, bypassCache });
 
   if (Object.keys(results).length === 0) {
     s.stop('No providers found');
