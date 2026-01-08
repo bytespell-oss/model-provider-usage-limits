@@ -1,6 +1,10 @@
 # Model Provider Usage Limits
+Never leave tokens on the table. 
 
-Track usage limits for your AI subscriptions. Zero config - uses provider auth from env/auth tokens stored for your user.
+Zero config - uses auth from env/config for current user.
+
+
+**Track** usage limits for your AI subscriptions. 
 
 `npx @bytespell/model-provider-usage-limits`
 
@@ -28,8 +32,6 @@ Supported providers:
 - GitHub Copilot
 - ChatGPT Plus
 - Codex
-
-Never leave tokens on the table again.
 
 ---
 
