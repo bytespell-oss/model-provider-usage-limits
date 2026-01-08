@@ -1,10 +1,7 @@
 # Model Provider Usage Limits
 Never leave tokens on the table. 
 
-Zero config - uses auth from env/config for current user.
-
-
-**Track** usage limits for your AI subscriptions. 
+**Track** usage limits for your subscriptions. 
 
 `npx @bytespell/model-provider-usage-limits`
 
@@ -17,7 +14,7 @@ github-copilot:
   monthly: 60% used
 ```
 
-Route your AI requests to squeeze all the value out of your subscriptions
+**Route** your requests to optimal subscriptions
 
 `npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5`
 
