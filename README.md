@@ -96,11 +96,10 @@ const best = pickBestProvider({ providerID: 'anthropic', modelID: 'claude-sonnet
 
 ## Roadmap
 
-- [ ] Add Gemini Advanced support
-- [ ] Cost tracking & savings calculator  
-- [ ] Desktop tray app for live monitoring
+- [ ] Add Gemini support
+- [ ] Add open-code-router plugin to auto-route open-code requests based on current utilization
 
-**Want to contribute?** We're looking for help with [specific feature]. See [CONTRIBUTING.md](./CONTRIBUTING.md)
+**Want to contribute?** We're looking for help with finalizing the open-code-router plugin! See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 
