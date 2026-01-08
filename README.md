@@ -1,72 +1,105 @@
 # Model Provider Usage Limits
 
-Monorepo for managing AI provider usage limits and smart routing.
-
-## Packages
-
-| Package | Description | npm |
-|---------|-------------|-----|
-| [@bytespell/model-provider-usage-limits](./packages/core) | Headless library: fetch usage, pace tracking, router logic | [![npm](https://img.shields.io/npm/v/@bytespell/model-provider-usage-limits)](https://www.npmjs.com/package/@bytespell/model-provider-usage-limits) |
-| [@bytespell/opencode-usage-limits-router](./packages/opencode-usage-limits-router) | OpenCode integration: CLI + plugin | [![npm](https://img.shields.io/npm/v/@bytespell/opencode-usage-limits-router)](https://www.npmjs.com/package/@bytespell/opencode-usage-limits-router) |
+**Never leave tokens on the table.** Track usage across all your AI subscriptions and route requests to the provider with the most headroom.
 
 ## Quick Start
-
-### For OpenCode Users (CLI)
-
 ```bash
-npx @bytespell/opencode-usage-limits-router
+# Check current usage across all providers
+npx @bytespell/model-provider-usage-limits
+
+# Find the best provider for your next request
+npx @bytespell/model-provider-usage-limits --route claude-sonnet-4-5
 ```
 
-Reads tokens from OpenCode's auth file automatically.
+## Features
 
-### As a Library
+### 📊 Usage Tracking
+Monitor consumption across multiple time windows:
+```yaml
+anthropic:
+  5h: 45% used
+  7d: 30% used
+
+github-copilot:
+  monthly: 60% used
+```
+
+### 🎯 Routing
+Automatically route to the subscription with most available capacity:
+```yaml
+github-copilot has most headroom (-15% pace)
+  - github-copilot: score -15 (pace: -15%)
+  - anthropic: score 8 (pace: +8%)
+```
+
+## Supported Providers
+
+- **Anthropic** - Claude Pro / Max
+- **GitHub** - Copilot
+- **OpenAI** - ChatGPT Plus
+- **Codex**
+
+---
+
+## CLI
+
+```bash
+npx @bytespell/model-provider-usage-limits [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <id>` | Query specific provider (`anthropic`, `github-copilot`, `openai`) |
+| `--route <model>` | Pick best provider for a model |
+| `--json` | Output JSON |
+| `--no-cache` | Bypass cache |
+
+## Library
 
 ```bash
 npm install @bytespell/model-provider-usage-limits
 ```
 
+### getUsage()
+
+```typescript
+import { getUsage } from '@bytespell/model-provider-usage-limits';
+
+// Auto-detect tokens
+const results = await getUsage({ autoDetectAuthTokens: true });
+
+// Or explicit tokens
+const results = await getUsage({
+  tokens: { anthropic: 'sk-...', 'github-copilot': 'ghu_...' }
+});
+```
+
+| Option | Description |
+|--------|-------------|
+| `autoDetectAuthTokens` | Read tokens from known sources |
+| `tokens` | Explicit token map (overrides auto-detected) |
+| `bypassCache` | Skip cache |
+
+### pickBestProvider()
+
 ```typescript
 import { getUsage, pickBestProvider } from '@bytespell/model-provider-usage-limits';
 
-const results = await getUsage({
-  tokens: {
-    anthropic: 'your-token',
-    'github-copilot': 'your-token',
-  }
-});
+const results = await getUsage({ autoDetectAuthTokens: true });
+const best = pickBestProvider({ providerID: 'anthropic', modelID: 'claude-sonnet-4-5' }, results);
 
-const best = pickBestProvider('claude-sonnet-4-5', results);
+// best.providerID = 'github-copilot'
+// best.modelID = 'claude-sonnet-4.5'  
+// best.reason = 'github-copilot has most headroom (-15% pace)'
 ```
 
-### As an OpenCode Plugin
 
-> **Note:** This project is not built by the OpenCode team and is not affiliated with OpenCode in any way.
+## Roadmap
 
-Add to `.opencode/package.json`:
+- [ ] Add Gemini support
+- [ ] Add open-code-router plugin to auto-route open-code requests based on current utilization
 
-```json
-{
-  "type": "module",
-  "dependencies": {
-    "@opencode-ai/plugin": "^1.1.4",
-    "@bytespell/opencode-usage-limits-router": "^0.0.1"
-  }
-}
-```
-
-Create `.opencode/plugin/usage-limits.ts`:
-
-```typescript
-export { UsageLimitsPlugin } from '@bytespell/opencode-usage-limits-router';
-```
-
-## Development
-
-```bash
-npm install
-npm run build
-node packages/opencode-usage-limits-router/dist/cli.js
-```
+**Want to contribute?** We're looking for help with finalizing the open-code-router plugin! See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 

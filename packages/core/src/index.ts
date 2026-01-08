@@ -23,11 +23,22 @@ export {
 // Utilities
 export { calculatePaceDelta } from './utils/pace.js';
 
+// Auth detection utilities
+export { 
+  detectAuthTokens,
+  getOpenCodeAuthPath,
+  readOpenCodeAuth,
+  getAnthropicToken,
+  getCopilotToken,
+  getCodexToken,
+} from './utils/auth.js';
+
 // Test mode utilities
 export type { TestScenario } from './utils/test-mode.js';
 export { isTestModeEnabled, getTestScenario, generateTestUsage } from './utils/test-mode.js';
 
 import type { ProviderID, UsageResult, UsageOptions, ProviderTokens } from './types.js';
+import { detectAuthTokens } from './utils/auth.js';
 import { getAnthropicUsage } from './providers/anthropic.js';
 import { getCopilotUsage } from './providers/copilot.js';
 import { getCodexUsage } from './providers/codex.js';
@@ -44,27 +55,39 @@ export function listSupportedProviders(): ProviderID[] {
  * Options for fetching usage data.
  */
 export interface GetUsageOptions extends UsageOptions {
-  /** Provider tokens - map of provider ID to auth token */
-  tokens: ProviderTokens;
+  /** 
+   * Provider tokens - map of provider ID to auth token.
+   * Optional when autoDetectAuthTokens is true.
+   */
+  tokens?: ProviderTokens;
 }
 
 /**
  * Get usage data for providers.
  * 
- * Pass a tokens object mapping provider IDs to their auth tokens.
- * Only providers with tokens will be queried.
+ * Pass a tokens object mapping provider IDs to their auth tokens,
+ * or use autoDetectAuthTokens to automatically read tokens from known sources.
  * 
  * @example
  * ```typescript
- * // Single provider
+ * // Auto-detect tokens from OpenCode auth.json
+ * const results = await getUsage({ autoDetectAuthTokens: true });
+ * 
+ * // Single provider with explicit token
  * const result = await getUsage({ tokens: { anthropic: 'sk-...' } });
  * 
- * // Multiple providers
+ * // Multiple providers with explicit tokens
  * const results = await getUsage({ 
  *   tokens: { 
  *     anthropic: 'sk-...',
  *     'github-copilot': 'gh-...' 
  *   }
+ * });
+ * 
+ * // Auto-detect with explicit override (explicit takes priority)
+ * const results = await getUsage({ 
+ *   autoDetectAuthTokens: true,
+ *   tokens: { anthropic: 'my-override-token' }
  * });
  * ```
  * 
@@ -74,7 +97,19 @@ export interface GetUsageOptions extends UsageOptions {
 export async function getUsage(
   options: GetUsageOptions,
 ): Promise<Partial<Record<ProviderID, UsageResult>>> {
-  const { tokens, ...fetchOptions } = options;
+  const { tokens: explicitTokens, autoDetectAuthTokens, ...fetchOptions } = options;
+  
+  // Build final tokens: auto-detected (if enabled) merged with explicit (explicit wins)
+  let tokens: ProviderTokens = {};
+  
+  if (autoDetectAuthTokens) {
+    tokens = detectAuthTokens();
+  }
+  
+  // Explicit tokens override auto-detected ones
+  if (explicitTokens) {
+    tokens = { ...tokens, ...explicitTokens };
+  }
   
   // Test mode: return simulated data
   if (isTestModeEnabled()) {

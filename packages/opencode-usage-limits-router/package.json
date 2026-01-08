@@ -1,13 +1,10 @@
 {
   "name": "@bytespell/opencode-usage-limits-router",
-  "version": "0.0.2",
-  "description": "OpenCode plugin to auto-route to best AI provider based on usage limits. Includes CLI.",
+  "version": "0.0.3",
+  "description": "OpenCode plugin for AI provider usage limits routing.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "opencode-usage-limits": "./dist/cli.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,7 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/cli.ts ./src/plugin.ts --outdir ./dist --target bun && bun x tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts ./src/plugin.ts --outdir ./dist --target bun && bun x tsc --emitDeclarationOnly",
     "watch": "bun build ./src/index.ts --outdir ./dist --target bun --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
@@ -47,7 +44,7 @@
     "url": "https://github.com/bytespell-oss/model-provider-usage-limits/issues"
   },
   "dependencies": {
-    "@bytespell/model-provider-usage-limits": "^0.0.1"
+    "@bytespell/model-provider-usage-limits": "^0.0.2"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "^1.0.0"

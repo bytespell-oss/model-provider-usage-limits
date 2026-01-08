@@ -19,7 +19,7 @@ import {
   type UsageResult,
   type ProviderID,
 } from '@bytespell/model-provider-usage-limits';
-import { getProviderTokens } from './auth.js';
+import { detectAuthTokens } from './auth.js';
 import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -173,7 +173,7 @@ export const UsageLimitsPlugin: Plugin = async ({ client }) => {
         infoLog(`Session ${sessionID}: Assistant response completed using ${providerID}/${modelID}`);
         
         // Get tokens and check if we can fetch usage
-        const tokens = getProviderTokens();
+        const tokens = detectAuthTokens();
         debugLog(`Tokens available: ${Object.keys(tokens).join(', ') || 'none'}`);
         
         if (Object.keys(tokens).length === 0) {
