@@ -2,6 +2,10 @@
 
 **Never leave tokens on the table.** Track usage across all your AI subscriptions and route requests to the provider with the most headroom.
 
+## Demo
+
+![Demo](./assets/demo.svg)
+
 ## Quick Start
 ```bash
 # Check current usage across all providers
