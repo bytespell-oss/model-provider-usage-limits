@@ -4,52 +4,37 @@
  */
 
 import { parseArgs } from 'node:util';
+import * as p from '@clack/prompts';
+import pc from 'picocolors';
 import { getUsage, listSupportedProviders, pickBestProvider } from './index.js';
 import type { ProviderID, UsageResult } from './types.js';
 
-// ANSI color codes
-const colors = {
-  reset: '\x1b[0m',
-  bold: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  cyan: '\x1b[36m',
-};
-
-const useColor = process.stdout.isTTY !== false;
-
-function c(color: keyof typeof colors, text: string): string {
-  return useColor ? `${colors[color]}${text}${colors.reset}` : text;
+/**
+ * Get color function based on usage percentage (green = good/low, red = bad/high)
+ */
+function colorByUsage(percent: number, text: string): string {
+  if (percent >= 80) return pc.red(text);
+  if (percent >= 50) return pc.yellow(text);
+  return pc.green(text);
 }
 
 /**
- * Get color based on usage percentage (green = good/low, red = bad/high)
+ * Get color function based on pace delta (green = under pace, red = over pace)
  */
-function getUsageColor(percent: number): keyof typeof colors {
-  if (percent >= 80) return 'red';
-  if (percent >= 50) return 'yellow';
-  return 'green';
-}
-
-/**
- * Get color based on pace delta (green = under pace, red = over pace)
- */
-function getPaceColor(pace: number): keyof typeof colors {
-  if (pace > 10) return 'red';
-  if (pace > 0) return 'yellow';
-  return 'green';
+function colorByPace(pace: number, text: string): string {
+  if (pace > 10) return pc.red(text);
+  if (pace > 0) return pc.yellow(text);
+  return pc.green(text);
 }
 
 function printHelp(): void {
   console.log(`
-usage-limits - Fetch AI provider usage limits
+${pc.bold('usage-limits')} - Fetch AI provider usage limits
 
-Usage:
+${pc.dim('Usage:')}
   npx @bytespell/model-provider-usage-limits [options]
 
-Options:
+${pc.dim('Options:')}
   --provider <id>     Query specific provider (anthropic, github-copilot, openai)
   --route <model>     Pick best provider for a model
   --json              Output JSON format
@@ -58,139 +43,172 @@ Options:
 `);
 }
 
-function formatUsageText(result: UsageResult): string {
-  const { provider, data, error } = result;
-  
-  if (data === null && !error) {
-    return `${c('bold', provider)}: ${c('dim', 'Not authenticated')}`;
-  }
-  
-  if (data === null && error) {
-    return `${c('bold', provider)}: ${c('red', `Error - ${error.message}`)}`;
-  }
-  
-  const lines: string[] = [`${c('bold', provider)}:`];
+function formatUsageNote(results: UsageResult[]): string {
+  const lines: string[] = [];
 
-  if (data!.primary) {
-    const percent = data!.primary.usedPercent;
-    const color = getUsageColor(percent);
-    lines.push(`  ${c('dim', data!.primary.window + ':')} ${c(color, `${percent}%`)} used`);
+  for (const result of results) {
+    const { provider, data, error } = result;
+
+    if (data === null && !error) {
+      lines.push(`${pc.cyan(provider)}: ${pc.dim('Not authenticated')}`);
+      continue;
+    }
+
+    if (data === null && error) {
+      lines.push(`${pc.cyan(provider)}: ${pc.red(`Error - ${error.message}`)}`);
+      continue;
+    }
+
+    lines.push(pc.cyan(provider));
+
+    if (data!.primary) {
+      const percent = data!.primary.usedPercent;
+      lines.push(`  ${pc.dim(data!.primary.window + ':')}      ${colorByUsage(percent, `${percent}% used`)}`);
+    }
+
+    if (data!.secondary) {
+      const percent = data!.secondary.usedPercent;
+      lines.push(`  ${pc.dim(data!.secondary.window + ':')}      ${colorByUsage(percent, `${percent}% used`)}`);
+    }
+
+    if (data!.metadata?.plan) {
+      lines.push(`  ${pc.dim('plan:')}    ${data!.metadata.plan}`);
+    }
+
+    lines.push('');
   }
 
-  if (data!.secondary) {
-    const percent = data!.secondary.usedPercent;
-    const color = getUsageColor(percent);
-    lines.push(`  ${c('dim', data!.secondary.window + ':')} ${c(color, `${percent}%`)} used`);
-  }
-
-  if (data!.metadata?.plan) {
-    lines.push(`  ${c('dim', 'plan:')} ${data!.metadata.plan}`);
-  }
-
-  return lines.join('\n');
+  return lines.join('\n').trim();
 }
 
 async function main(): Promise<void> {
-  try {
-    const { values } = parseArgs({
-      options: {
-        provider: { type: 'string' },
-        route: { type: 'string' },
-        json: { type: 'boolean', default: false },
-        'no-cache': { type: 'boolean', default: false },
-        help: { type: 'boolean', default: false },
-      },
-      allowPositionals: false,
-    });
+  const { values } = parseArgs({
+    options: {
+      provider: { type: 'string' },
+      route: { type: 'string' },
+      json: { type: 'boolean', default: false },
+      'no-cache': { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
+    },
+    allowPositionals: false,
+  });
 
-    if (values.help) {
-      printHelp();
-      process.exit(0);
-    }
+  if (values.help) {
+    printHelp();
+    process.exit(0);
+  }
 
-    const bypassCache = values['no-cache'] ?? false;
-    const outputJson = values.json ?? false;
+  const bypassCache = values['no-cache'] ?? false;
+  const outputJson = values.json ?? false;
 
-    // Auto-detect tokens
+  // JSON mode - no fancy output
+  if (outputJson) {
     const results = await getUsage({ autoDetectAuthTokens: true, bypassCache });
-    
-    if (Object.keys(results).length === 0) {
-      console.error('Error: No provider tokens found.');
-      console.error('Set up authentication with your AI providers.');
-      process.exit(1);
-    }
 
-    // Route mode
     if (values.route) {
       const modelID = values.route;
-      
-      // Try to find which provider has this model
       let currentProvider: ProviderID = 'anthropic';
       if (modelID.includes('gpt') || modelID.includes('o1') || modelID.includes('o3')) {
         currentProvider = 'openai';
       } else if (modelID.includes('claude')) {
         currentProvider = 'anthropic';
       }
-      
       const routeResult = pickBestProvider({ providerID: currentProvider, modelID }, results);
-      
-      if (!routeResult) {
-        console.log(`${modelID}: Not routable (only available on ${currentProvider})`);
-        process.exit(0);
+      console.log(JSON.stringify(routeResult, null, 2));
+    } else {
+      let filteredResults = results;
+      if (values.provider) {
+        const provider = values.provider as ProviderID;
+        filteredResults = { [provider]: results[provider] };
       }
-      
-      if (outputJson) {
-        console.log(JSON.stringify(routeResult, null, 2));
-      } else {
-        console.log(c('bold', routeResult.reason));
-        for (const candidate of routeResult.candidates) {
-          const pace = candidate.paceDelta;
-          const paceColor = pace !== null ? getPaceColor(pace) : 'dim';
-          const paceStr = pace !== null 
-            ? ` ${c('dim', '(pace:')} ${c(paceColor, `${pace > 0 ? '+' : ''}${pace}%`)}${c('dim', ')')}` 
-            : '';
-          const isWinner = candidate.providerID === routeResult.providerID;
-          const prefix = isWinner ? c('green', '→') : ' ';
-          console.log(`  ${prefix} ${c('cyan', candidate.providerID)}: score ${candidate.score}${paceStr}`);
-        }
-      }
-      
+      console.log(JSON.stringify(filteredResults, null, 2));
+    }
+    process.exit(0);
+  }
+
+  // Interactive mode with clack
+  p.intro(pc.bgCyan(pc.black(' model-provider-usage-limits ')));
+
+  const s = p.spinner();
+  s.start('Fetching usage limits');
+
+  const results = await getUsage({ autoDetectAuthTokens: true, bypassCache });
+
+  if (Object.keys(results).length === 0) {
+    s.stop('No providers found');
+    p.outro(pc.red('No provider tokens found. Set up authentication with your AI providers.'));
+    process.exit(1);
+  }
+
+  s.stop('Usage limits retrieved');
+
+  // Filter to specific provider if requested
+  let filteredResults = results;
+  if (values.provider) {
+    const provider = values.provider as ProviderID;
+    const supported = listSupportedProviders();
+
+    if (!supported.includes(provider)) {
+      p.outro(pc.red(`Unknown provider "${provider}". Supported: ${supported.join(', ')}`));
+      process.exit(1);
+    }
+
+    if (!results[provider]) {
+      p.outro(pc.red(`No data for provider "${provider}"`));
+      process.exit(1);
+    }
+
+    filteredResults = { [provider]: results[provider] };
+  }
+
+  // Show usage
+  const usageResults = Object.values(filteredResults).filter((r): r is UsageResult => r !== undefined);
+  p.note(formatUsageNote(usageResults), 'Current Usage');
+
+  // Route mode
+  if (values.route) {
+    const modelID = values.route;
+
+    s.start('Finding optimal provider');
+    await new Promise((r) => setTimeout(r, 300)); // Brief pause for effect
+
+    let currentProvider: ProviderID = 'anthropic';
+    if (modelID.includes('gpt') || modelID.includes('o1') || modelID.includes('o3')) {
+      currentProvider = 'openai';
+    } else if (modelID.includes('claude')) {
+      currentProvider = 'anthropic';
+    }
+
+    const routeResult = pickBestProvider({ providerID: currentProvider, modelID }, results);
+
+    if (!routeResult) {
+      s.stop('No route available');
+      p.outro(pc.yellow(`${modelID}: Not routable (only available on ${currentProvider})`));
       process.exit(0);
     }
 
-    // Filter to specific provider if requested
-    let filteredResults = results;
-    if (values.provider) {
-      const provider = values.provider as ProviderID;
-      const supported = listSupportedProviders();
-      
-      if (!supported.includes(provider)) {
-        console.error(`Error: Unknown provider "${provider}"`);
-        console.error(`Supported: ${supported.join(', ')}`);
-        process.exit(1);
-      }
+    s.stop('Route calculated');
 
-      if (!results[provider]) {
-        console.error(`Error: No data for provider "${provider}"`);
-        process.exit(1);
-      }
-
-      filteredResults = { [provider]: results[provider] };
+    const routeLines: string[] = [];
+    for (const candidate of routeResult.candidates) {
+      const pace = candidate.paceDelta;
+      const paceStr = pace !== null ? pc.dim(` (pace: ${pace > 0 ? '+' : ''}${pace}%)`) : '';
+      const isWinner = candidate.providerID === routeResult.providerID;
+      const bullet = isWinner ? pc.green('●') : pc.dim('○');
+      const name = isWinner ? pc.green(candidate.providerID) : pc.dim(candidate.providerID);
+      const score = isWinner
+        ? pc.green(`${candidate.score}`)
+        : colorByPace(candidate.score, `${candidate.score}`);
+      routeLines.push(`${bullet} ${name}  score ${score}${paceStr}`);
     }
 
-    if (outputJson) {
-      console.log(JSON.stringify(filteredResults, null, 2));
-    } else {
-      for (const result of Object.values(filteredResults)) {
-        if (result) {
-          console.log(formatUsageText(result));
-        }
-      }
-    }
-  } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
+    p.note(routeLines.join('\n'), pc.green(`✓ ${routeResult.reason}`));
   }
+
+  p.outro(pc.green('Done!'));
 }
 
-main();
+main().catch((error) => {
+  p.outro(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+  process.exit(1);
+});
